@@ -4,317 +4,791 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dog Matching System</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body>
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-
-        function DogMatcher() {
-          const [view, setView] = useState('about');
-          const [dogs, setDogs] = useState([]);
-          const [matches, setMatches] = useState([]);
-          
-          const [userPrefs, setUserPrefs] = useState({
-            livingSpace: 'house',
-            hasYard: 'yes',
-            experience: 'some',
-            activity: 'moderate',
-            hasChildren: 'no',
-            hasPets: 'no',
-            petType: 'none',
-            groomingTime: 'moderate',
-            needsHypoallergenic: 'no',
-            trainingTime: 'yes'
-          });
-
-          useEffect(() => {
-            const csvData = `Name,Sex,Breed,Age,Size,Energy Level,Temperament,Grooming Needs,Experience Required,Hypoallergenic,Potty trained,Leash trained,Crate trained,Good with other dogs,Good with cats,Good with little kids
-Muffin,Female,Basset Hound & Hound Mix,4 years,Medium,High,Friendly social sweet,Low,None,No,Yes,Yes,Yes,Yes,No,Yes
-Julius,Male,Australian Cattle Dog Mix,6 months,Medium,High,Playful sweet,Low,None,No,Yes,Yes,Yes,Yes,Unknown,Yes
-Mollie,Female,Shepherd Mix,10 years,Medium,Medium,Friendly gentle anxious,Medium,None,No,Yes,Yes,Yes,Yes,No,Yes
-Buttermilk,Male,Terrier Mix,6 months,Medium,High,Friendly active,Low,None,No,No,No,No,Yes,Unknown,No
-Chrissy,Female,Hound Mix,3 years,Medium,High,Loving exciteable,Low,None,No,Yes,No,Yes,Yes,No,Yes
-Lotte,Female,Mountain Cur Mix,8 years,Medium,Medium,Anxious smart loving,Low,None,No,Yes,Yes,Yes,Yes,Unknown,No
-Waffles,Male,Terrier Mix,6 months,Medium,High,Friendly active,Low,None,No,No,No,No,Yes,Unknown,No
-Lacey Lou,Female,Hound & Mixed Breed Mix,7 months,Medium,High,Social sweet,Low,None,No,No,No,Yes,Yes,Unknown,No
-Copper,Male,Australian Cattle Dog & Lab Mix,4 years,Medium,High,Affectionate smart,Low,None,No,Yes,Yes,Yes,Yes,Yes,No
-Cagney,Female,Chesapeake Bay Retriever Mix,6 months,Medium,High,Outgoing friendly,Low,None,No,Yes,No,No,Yes,Yes,No`;
-            
-            Papa.parse(csvData, {
-              header: true,
-              skipEmptyLines: true,
-              complete: (results) => {
-                const importedDogs = results.data.map((row, index) => ({
-                  id: index,
-                  name: row.Name,
-                  breed: row.Breed,
-                  age: row.Age,
-                  sex: row.Sex,
-                  size: row.Size.toLowerCase(),
-                  energy: row['Energy Level'].toLowerCase(),
-                  temperament: row.Temperament.split(' '),
-                  goodWithOtherDogs: row['Good with other dogs'].toLowerCase(),
-                  goodWithCats: row['Good with cats'].toLowerCase(),
-                  goodWithKids: row['Good with little kids'].toLowerCase(),
-                  grooming: row['Grooming Needs'].toLowerCase(),
-                  experience: row['Experience Required'].toLowerCase() === 'none' ? 'any' : row['Experience Required'].toLowerCase(),
-                  hypoallergenic: row.Hypoallergenic.toLowerCase() === 'yes',
-                  leashTrained: row['Leash trained'].toLowerCase() === 'yes',
-                  pottyTrained: row['Potty trained'].toLowerCase() === 'yes',
-                  crateTrained: row['Crate trained'].toLowerCase() === 'yes'
-                }));
-                setDogs(importedDogs);
-              }
-            });
-          }, []);
-
-          const calculateMatch = () => {
-            const scored = dogs.map(dog => {
-              let score = 75; // Base score
-              
-              // Simple matching logic
-              if (userPrefs.activity === 'low' && dog.energy === 'high') score -= 20;
-              if (userPrefs.activity === 'active' && dog.energy === 'low') score -= 20;
-              if (userPrefs.hasChildren === 'yes' && dog.goodWithKids === 'no') score -= 30;
-              if (userPrefs.hasPets === 'yes' && userPrefs.petType === 'dog' && dog.goodWithOtherDogs === 'no') score -= 30;
-              if (userPrefs.hasPets === 'yes' && userPrefs.petType === 'cat' && dog.goodWithCats === 'no') score -= 30;
-              if (userPrefs.needsHypoallergenic === 'yes' && !dog.hypoallergenic) score = 0;
-              
-              return { ...dog, matchScore: Math.max(0, score) };
-            });
-
-            setMatches(scored.sort((a, b) => b.matchScore - a.matchScore));
-            setView('results');
-          };
-
-          return (
-            <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #f3e8ff)', padding: '24px' }}>
-              <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                  <h1 style={{ fontSize: '36px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>
-                    🐕 Dog Matching System
-                  </h1>
-                  <p style={{ color: '#6b7280' }}>Find the perfect furry companion</p>
-                </div>
-
-                <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => setView('about')}
-                    style={{
-                      padding: '8px 24px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: view === 'about' ? '#9333ea' : 'white',
-                      color: view === 'about' ? 'white' : '#374151'
-                    }}
-                  >
-                    ℹ️ About
-                  </button>
-                  <button
-                    onClick={() => setView('quiz')}
-                    style={{
-                      padding: '8px 24px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: view === 'quiz' ? '#9333ea' : 'white',
-                      color: view === 'quiz' ? 'white' : '#374151'
-                    }}
-                  >
-                    👤 Find Your Match
-                  </button>
-                  <button
-                    onClick={() => setView('all-dogs')}
-                    style={{
-                      padding: '8px 24px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: view === 'all-dogs' ? '#9333ea' : 'white',
-                      color: view === 'all-dogs' ? 'white' : '#374151'
-                    }}
-                  >
-                    📋 All Dogs ({dogs.length})
-                  </button>
-                </div>
-
-                {view === 'about' && (
-                  <div style={{ maxWidth: '800px', margin: '0 auto', background: 'white', borderRadius: '12px', padding: '32px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
-                    <h2 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '24px' }}>About Our Dog Matching Service</h2>
-                    <p style={{ marginBottom: '16px', lineHeight: '1.6' }}>
-                      Welcome to our dog matching system! We help you find the perfect canine companion that fits your lifestyle.
-                    </p>
-                    <h3 style={{ fontSize: '20px', fontWeight: '600', marginTop: '24px', marginBottom: '12px' }}>How It Works</h3>
-                    <p style={{ marginBottom: '16px', lineHeight: '1.6' }}>
-                      Our matching algorithm considers your living space, activity level, experience, family situation, and more to find compatible dogs.
-                    </p>
-                  </div>
-                )}
-
-                {view === 'quiz' && (
-                  <div style={{ maxWidth: '600px', margin: '0 auto', background: 'white', borderRadius: '12px', padding: '32px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
-                    <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>Tell Us About Yourself</h2>
-                    
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Living Space</label>
-                      <select
-                        value={userPrefs.livingSpace}
-                        onChange={(e) => setUserPrefs(prev => ({ ...prev, livingSpace: e.target.value }))}
-                        style={{ width: '100%', padding: '8px 16px', border: '1px solid #d1d5db', borderRadius: '8px' }}
-                      >
-                        <option value="apartment">Apartment</option>
-                        <option value="house">House</option>
-                      </select>
-                    </div>
-
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Do you have a yard?</label>
-                      <select
-                        value={userPrefs.hasYard}
-                        onChange={(e) => setUserPrefs(prev => ({ ...prev, hasYard: e.target.value }))}
-                        style={{ width: '100%', padding: '8px 16px', border: '1px solid #d1d5db', borderRadius: '8px' }}
-                      >
-                        <option value="yes">Yes</option>
-                        <option value="no">No</option>
-                      </select>
-                    </div>
-
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Activity Level</label>
-                      <select
-                        value={userPrefs.activity}
-                        onChange={(e) => setUserPrefs(prev => ({ ...prev, activity: e.target.value }))}
-                        style={{ width: '100%', padding: '8px 16px', border: '1px solid #d1d5db', borderRadius: '8px' }}
-                      >
-                        <option value="low">Low (Short walks)</option>
-                        <option value="moderate">Moderate (Regular walks)</option>
-                        <option value="active">Active (Long walks, running)</option>
-                      </select>
-                    </div>
-
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Do you have children?</label>
-                      <select
-                        value={userPrefs.hasChildren}
-                        onChange={(e) => setUserPrefs(prev => ({ ...prev, hasChildren: e.target.value }))}
-                        style={{ width: '100%', padding: '8px 16px', border: '1px solid #d1d5db', borderRadius: '8px' }}
-                      >
-                        <option value="yes">Yes</option>
-                        <option value="no">No</option>
-                      </select>
-                    </div>
-
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Do you have other pets?</label>
-                      <select
-                        value={userPrefs.hasPets}
-                        onChange={(e) => setUserPrefs(prev => ({ ...prev, hasPets: e.target.value }))}
-                        style={{ width: '100%', padding: '8px 16px', border: '1px solid #d1d5db', borderRadius: '8px' }}
-                      >
-                        <option value="yes">Yes</option>
-                        <option value="no">No</option>
-                      </select>
-                    </div>
-
-                    {userPrefs.hasPets === 'yes' && (
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>What type of pets?</label>
-                        <select
-                          value={userPrefs.petType}
-                          onChange={(e) => setUserPrefs(prev => ({ ...prev, petType: e.target.value }))}
-                          style={{ width: '100%', padding: '8px 16px', border: '1px solid #d1d5db', borderRadius: '8px' }}
-                        >
-                          <option value="dog">Dog(s)</option>
-                          <option value="cat">Cat(s)</option>
-                          <option value="both">Both</option>
-                        </select>
-                      </div>
-                    )}
-
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Need hypoallergenic?</label>
-                      <select
-                        value={userPrefs.needsHypoallergenic}
-                        onChange={(e) => setUserPrefs(prev => ({ ...prev, needsHypoallergenic: e.target.value }))}
-                        style={{ width: '100%', padding: '8px 16px', border: '1px solid #d1d5db', borderRadius: '8px' }}
-                      >
-                        <option value="no">No</option>
-                        <option value="yes">Yes</option>
-                      </select>
-                    </div>
-
-                    <button
-                      onClick={calculateMatch}
-                      style={{
-                        width: '100%',
-                        background: '#9333ea',
-                        color: 'white',
-                        padding: '12px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        fontWeight: '600'
-                      }}
-                    >
-                      🔍 Find My Match
-                    </button>
-                  </div>
-                )}
-
-                {view === 'all-dogs' && (
-                  <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-                    <h2 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '24px', textAlign: 'center' }}>All Available Dogs</h2>
-                    {dogs.map(dog => (
-                      <div key={dog.id} style={{ background: 'white', borderRadius: '12px', padding: '24px', marginBottom: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>{dog.name}</h3>
-                        <p style={{ color: '#6b7280', marginBottom: '16px' }}>{dog.breed} • {dog.age} • {dog.sex}</p>
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          <span style={{ padding: '4px 12px', background: '#dbeafe', color: '#1e40af', borderRadius: '16px', fontSize: '14px' }}>{dog.size}</span>
-                          <span style={{ padding: '4px 12px', background: '#d1fae5', color: '#065f46', borderRadius: '16px', fontSize: '14px' }}>{dog.energy} energy</span>
-                          {dog.leashTrained && <span style={{ padding: '4px 12px', background: '#ccfbf1', color: '#115e59', borderRadius: '16px', fontSize: '14px' }}>leash trained</span>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {view === 'results' && (
-                  <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-                    <h2 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '24px', textAlign: 'center' }}>Your Matches</h2>
-                    {matches.map((dog, index) => (
-                      <div key={dog.id} style={{ background: 'white', borderRadius: '12px', padding: '24px', marginBottom: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                          <div>
-                            <h3 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
-                              {dog.name} {index === 0 && '❤️ Best Match'}
-                            </h3>
-                            <p style={{ color: '#6b7280', marginBottom: '16px' }}>{dog.breed} • {dog.age} • {dog.sex}</p>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#9333ea' }}>{dog.matchScore}%</div>
-                            <div style={{ fontSize: '14px', color: '#6b7280' }}>Match</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<DogMatcher />);
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom right, #eff6ff, #f3e8ff);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #6b7280;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            background: white;
+            color: #374151;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .nav-button:hover {
+            background: #f3f4f6;
+        }
+
+        .nav-button.active {
+            background: #9333ea;
+            color: white;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #374151;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 10px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .submit-button {
+            width: 100%;
+            background: #9333ea;
+            color: white;
+            padding: 14px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .submit-button:hover {
+            background: #7e22ce;
+        }
+
+        .dog-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .dog-card h3 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: #1f2937;
+        }
+
+        .dog-info {
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+
+        .tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 14px;
+        }
+
+        .tag-blue { background: #dbeafe; color: #1e40af; }
+        .tag-green { background: #d1fae5; color: #065f46; }
+        .tag-teal { background: #ccfbf1; color: #115e59; }
+        .tag-yellow { background: #fef3c7; color: #92400e; }
+
+        .match-score {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+        }
+
+        .score-display {
+            text-align: right;
+        }
+
+        .score-number {
+            font-size: 42px;
+            font-weight: bold;
+            color: #9333ea;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .best-match-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            background: #f3e8ff;
+            color: #7e22ce;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .quiz-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .about-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .about-container h2 {
+            font-size: 28px;
+            margin-bottom: 24px;
+            color: #1f2937;
+        }
+
+        .about-container h3 {
+            font-size: 20px;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            color: #374151;
+        }
+
+        .about-container p {
+            line-height: 1.6;
+            color: #4b5563;
+            margin-bottom: 16px;
+        }
+
+        .about-container ul {
+            list-style-position: inside;
+            color: #4b5563;
+            margin-bottom: 16px;
+            line-height: 1.8;
+        }
+
+        .warning-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            margin-top: 24px;
+            border-radius: 4px;
+        }
+
+        .dog-image {
+            width: 100%;
+            max-width: 300px;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .no-image {
+            width: 100%;
+            max-width: 300px;
+            height: 250px;
+            background: #e5e7eb;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐕 Dog Matching System</h1>
+            <p>Find the perfect furry companion</p>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="nav-button active" onclick="showPage('about')">ℹ️ About</button>
+            <button class="nav-button" onclick="showPage('quiz')">👤 Find Your Match</button>
+            <button class="nav-button" onclick="showPage('all-dogs')">📋 All Dogs (<span id="dog-count">10</span>)</button>
+        </div>
+
+        <!-- About Page -->
+        <div id="about" class="page active">
+            <div class="about-container card">
+                <h2>About Our Dog Matching Service</h2>
+                <p>Welcome to our dog matching system! We're dedicated to helping you find the perfect canine companion that fits your lifestyle, living situation, and family needs.</p>
+                
+                <h3>How It Works</h3>
+                <p>Our intelligent matching algorithm considers multiple factors to pair you with compatible dogs:</p>
+                <ul>
+                    <li>Your living space and environment</li>
+                    <li>Activity level and exercise preferences</li>
+                    <li>Experience with dogs</li>
+                    <li>Family composition (children, other pets)</li>
+                    <li>Grooming commitment</li>
+                    <li>Training availability</li>
+                    <li>Special needs (hypoallergenic requirements)</li>
+                </ul>
+
+                <h3>Research-Based Matching</h3>
+                <p>Our system incorporates veterinary research and breed-specific knowledge to ensure responsible matches. For example, we account for the fact that puppies under 2 years old require significant time, training, and energy.</p>
+
+                <h3>Get Started</h3>
+                <p>Click "Find Your Match" to take our comprehensive questionnaire, or browse "All Dogs" to see every available companion.</p>
+
+                <div class="warning-box">
+                    <strong>Remember:</strong> Every dog is unique! While our matching system provides guidance, we encourage you to meet potential matches in person and consider professional guidance from veterinarians and trainers.
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Page -->
+        <div id="quiz" class="page">
+            <div class="quiz-container card">
+                <h2 style="margin-bottom: 24px;">Tell Us About Yourself</h2>
+                <form id="quiz-form">
+                    <div class="form-group">
+                        <label>Living Space</label>
+                        <select id="living-space">
+                            <option value="apartment">Apartment</option>
+                            <option value="house" selected>House</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Do you have a yard?</label>
+                        <select id="has-yard">
+                            <option value="yes" selected>Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Dog Experience</label>
+                        <select id="experience">
+                            <option value="none">First-time owner</option>
+                            <option value="some" selected>Some experience</option>
+                            <option value="experienced">Very experienced</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Activity Level</label>
+                        <select id="activity">
+                            <option value="low">Low (Short walks)</option>
+                            <option value="moderate" selected>Moderate (Regular walks)</option>
+                            <option value="active">Active (Long walks, running)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Do you have children?</label>
+                        <select id="has-children">
+                            <option value="yes">Yes</option>
+                            <option value="no" selected>No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Do you have other pets?</label>
+                        <select id="has-pets">
+                            <option value="yes">Yes</option>
+                            <option value="no" selected>No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="pet-type-group" style="display: none;">
+                        <label>What type of pets?</label>
+                        <select id="pet-type">
+                            <option value="dog">Dog(s)</option>
+                            <option value="cat">Cat(s)</option>
+                            <option value="both">Both dogs and cats</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Grooming Time Commitment</label>
+                        <select id="grooming-time">
+                            <option value="low">Low (Minimal grooming)</option>
+                            <option value="moderate" selected>Moderate (Weekly brushing)</option>
+                            <option value="high">High (Daily grooming)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Do you need a hypoallergenic dog?</label>
+                        <select id="hypoallergenic">
+                            <option value="no" selected>No</option>
+                            <option value="yes">Yes (I have allergies)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Do you have time to train a dog?</label>
+                        <select id="training-time">
+                            <option value="yes" selected>Yes, I can train</option>
+                            <option value="no">No, I need a fully trained dog</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="submit-button">🔍 Find My Match</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- All Dogs Page -->
+        <div id="all-dogs" class="page">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h2 style="font-size: 28px; color: #1f2937;">All Available Dogs</h2>
+            </div>
+            <div id="all-dogs-list"></div>
+        </div>
+
+        <!-- Results Page -->
+        <div id="results" class="page">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h2 style="font-size: 28px; color: #1f2937;">Your Matches</h2>
+                <p style="color: #6b7280;">Based on your preferences, here are your matches ranked by compatibility</p>
+            </div>
+            <div id="results-list"></div>
+            <div style="text-align: center; margin-top: 30px;">
+                <button onclick="showPage('quiz')" style="padding: 12px 24px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                    Adjust Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dog data
+        const dogs = [
+            {
+                name: "Muffin",
+                sex: "Female",
+                breed: "Basset Hound & Hound Mix",
+                age: "4 years",
+                size: "medium",
+                energy: "high",
+                temperament: ["Friendly", "Social", "Sweet"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: true,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "no",
+                goodWithKids: "yes",
+                image: "images/muffin.jpg"
+            },
+            {
+                name: "Julius",
+                sex: "Male",
+                breed: "Australian Cattle Dog & Blue Heeler & Hound Mix",
+                age: "6 months",
+                size: "medium",
+                energy: "high",
+                temperament: ["Playful", "Sweet"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: true,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "unknown",
+                goodWithKids: "yes",
+                image: "images/julius.jpg"
+            },
+            {
+                name: "Mollie",
+                sex: "Female",
+                breed: "Shepherd Mix",
+                age: "10 years",
+                size: "medium",
+                energy: "medium",
+                temperament: ["Friendly", "Gentle", "Anxious"],
+                grooming: "medium",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: true,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "no",
+                goodWithKids: "yes",
+                image: null
+            },
+            {
+                name: "Buttermilk",
+                sex: "Male",
+                breed: "Terrier Mix",
+                age: "6 months",
+                size: "medium",
+                energy: "high",
+                temperament: ["Friendly", "Active"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: false,
+                leashTrained: false,
+                crateTrained: false,
+                goodWithDogs: "yes",
+                goodWithCats: "unknown",
+                goodWithKids: "no",
+                image: "images/buttermilk.jpg"
+            },
+            {
+                name: "Chrissy",
+                sex: "Female",
+                breed: "Hound Mix",
+                age: "3 years",
+                size: "medium",
+                energy: "high",
+                temperament: ["Loving", "Excitable"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: false,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "no",
+                goodWithKids: "yes",
+                image: "images/chrissy.jpg"
+            },
+            {
+                name: "Lotte",
+                sex: "Female",
+                breed: "Mountain Cur Mix",
+                age: "8 years",
+                size: "medium",
+                energy: "medium",
+                temperament: ["Anxious", "Smart", "Loving"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: true,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "unknown",
+                goodWithKids: "no",
+                image: "images/lotte.jpg"
+            },
+            {
+                name: "Waffles",
+                sex: "Male",
+                breed: "Terrier Mix",
+                age: "6 months",
+                size: "medium",
+                energy: "high",
+                temperament: ["Friendly", "Active"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: false,
+                leashTrained: false,
+                crateTrained: false,
+                goodWithDogs: "yes",
+                goodWithCats: "unknown",
+                goodWithKids: "no",
+                image: "images/waffles.jpg"
+            },
+            {
+                name: "Lacey Lou",
+                sex: "Female",
+                breed: "Hound & Mixed Breed Mix",
+                age: "7 months",
+                size: "medium",
+                energy: "high",
+                temperament: ["Social", "Sweet"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: false,
+                leashTrained: false,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "unknown",
+                goodWithKids: "no",
+                image: "images/lacey-lou.jpg"
+            },
+            {
+                name: "Copper",
+                sex: "Male",
+                breed: "Australian Cattle Dog & Labrador Retriever Mix",
+                age: "4 years",
+                size: "medium",
+                energy: "high",
+                temperament: ["Affectionate", "Smart"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: true,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "yes",
+                goodWithKids: "no",
+                image: "images/copper.jpg"
+            },
+            {
+                name: "Cagney",
+                sex: "Female",
+                breed: "Chesapeake Bay Retriever & Hound",
+                age: "6 months",
+                size: "medium",
+                energy: "high",
+                temperament: ["Outgoing", "Friendly"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: false,
+                crateTrained: false,
+                goodWithDogs: "yes",
+                goodWithCats: "yes",
+                goodWithKids: "no",
+                image: "images/cagney.jpg"
+            }
+        ];
+
+        // Update dog count
+        document.getElementById('dog-count').textContent = dogs.length;
+
+        // Show/hide pet type based on has pets selection
+        document.getElementById('has-pets').addEventListener('change', function() {
+            const petTypeGroup = document.getElementById('pet-type-group');
+            petTypeGroup.style.display = this.value === 'yes' ? 'block' : 'none';
+        });
+
+        // Page navigation
+        function showPage(pageName) {
+            // Hide all pages
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+
+            // Hide all active buttons
+            const buttons = document.querySelectorAll('.nav-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            // Show selected page
+            document.getElementById(pageName).classList.add('active');
+
+            // Highlight active button
+            event.target.classList.add('active');
+
+            // If showing all dogs, render them
+            if (pageName === 'all-dogs') {
+                renderAllDogs();
+            }
+        }
+
+        // Render all dogs
+        function renderAllDogs() {
+            const container = document.getElementById('all-dogs-list');
+            container.innerHTML = '';
+
+            dogs.forEach(dog => {
+                const dogCard = createDogCard(dog, false);
+                container.appendChild(dogCard);
+            });
+        }
+
+        // Create dog card element
+        function createDogCard(dog, showScore = false, score = 0) {
+            const card = document.createElement('div');
+            card.className = 'dog-card';
+
+            let html = '';
+
+            // Add image if exists
+            if (dog.image) {
+                html += `<img src="${dog.image}" alt="${dog.name}" class="dog-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+                html += `<div class="no-image" style="display:none;">(Not pictured)</div>`;
+            } else {
+                html += `<div class="no-image">(Not pictured)</div>`;
+            }
+
+            if (showScore) {
+                html += '<div class="match-score">';
+                html += '<div>';
+                html += `<h3>${dog.name}${score >= 80 ? '<span class="best-match-badge">❤️ Best Match</span>' : ''}</h3>`;
+                html += `<p class="dog-info">${dog.breed} • ${dog.age} • ${dog.sex}</p>`;
+                html += '</div>';
+                html += '<div class="score-display">';
+                html += `<div class="score-number">${score}%</div>`;
+                html += '<div class="score-label">Match</div>';
+                html += '</div>';
+                html += '</div>';
+            } else {
+                html += `<h3>${dog.name}</h3>`;
+                html += `<p class="dog-info">${dog.breed} • ${dog.age} • ${dog.sex}</p>`;
+            }
+
+            html += '<div class="tags">';
+            html += `<span class="tag tag-blue">${dog.size}</span>`;
+            html += `<span class="tag tag-green">${dog.energy} energy</span>`;
+            if (dog.leashTrained) html += '<span class="tag tag-teal">leash trained</span>';
+            if (dog.pottyTrained) html += '<span class="tag tag-teal">potty trained</span>';
+            if (dog.crateTrained) html += '<span class="tag tag-teal">crate trained</span>';
+            html += '</div>';
+
+            card.innerHTML = html;
+            return card;
+        }
+
+        // Calculate match score
+        function calculateMatchScore(dog, prefs) {
+            let score = 70; // Base score
+            const isPuppy = dog.age.includes('month') || (parseInt(dog.age) < 2);
+
+            // Energy matching
+            if (prefs.activity === 'low' && dog.energy === 'high') score -= 25;
+            if (prefs.activity === 'active' && dog.energy === 'low') score -= 25;
+            if (prefs.activity === 'moderate' && dog.energy === 'medium') score += 15;
+            if (prefs.activity === 'active' && dog.energy === 'high') score += 15;
+
+            // Children compatibility
+            if (prefs.hasChildren === 'yes') {
+                if (dog.goodWithKids === 'yes') score += 20;
+                else if (dog.goodWithKids === 'no') score -= 30;
+            }
+
+            // Pet compatibility
+            if (prefs.hasPets === 'yes') {
+                if (prefs.petType === 'dog' && dog.goodWithDogs === 'yes') score += 15;
+                else if (prefs.petType === 'dog' && dog.goodWithDogs === 'no') score -= 30;
+                
+                if (prefs.petType === 'cat' && dog.goodWithCats === 'yes') score += 15;
+                else if (prefs.petType === 'cat' && dog.goodWithCats === 'no') score -= 30;
+            }
+
+            // Hypoallergenic requirement
+            if (prefs.hypoallergenic === 'yes' && !dog.hypoallergenic) score = 0;
+
+            // Training requirements
+            if (prefs.trainingTime === 'no') {
+                if (dog.pottyTrained && dog.leashTrained && dog.crateTrained) score += 15;
+                else score -= 20;
+            }
+
+            // Puppy considerations
+            if (isPuppy) {
+                if (prefs.trainingTime === 'no') score -= 25;
+                if (prefs.activity === 'low') score -= 20;
+            }
+
+            return Math.max(0, Math.min(100, score));
+        }
+
+        // Handle form submission
+        document.getElementById('quiz-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const prefs = {
+                livingSpace: document.getElementById('living-space').value,
+                hasYard: document.getElementById('has-yard').value,
+                experience: document.getElementById('experience').value,
+                activity: document.getElementById('activity').value,
+                hasChildren: document.getElementById('has-children').value,
+                hasPets: document.getElementById('has-pets').value,
+                petType: document.getElementById('pet-type').value,
+                groomingTime: document.getElementById('grooming-time').value,
+                hypoallergenic: document.getElementById('hypoallergenic').value,
+                trainingTime: document.getElementById('training-time').value
+            };
+
+            // Calculate scores
+            const results = dogs.map(dog => ({
+                dog: dog,
+                score: calculateMatchScore(dog, prefs)
+            }));
+
+            // Sort by score
+            results.sort((a, b) => b.score - a.score);
+
+            // Render results
+            const resultsContainer = document.getElementById('results-list');
+            resultsContainer.innerHTML = '';
+
+            if (results.every(r => r.score === 0)) {
+                resultsContainer.innerHTML = '<div class="card" style="text-align: center;"><p style="font-size: 18px; margin-bottom: 16px;">No hypoallergenic dogs are currently available.</p><p style="color: #6b7280;">Please adjust your preferences or check back later.</p></div>';
+            } else {
+                results.forEach((result, index) => {
+                    if (result.score > 0) {
+                        const card = createDogCard(result.dog, true, result.score);
+                        resultsContainer.appendChild(card);
+                    }
+                });
+            }
+
+            // Show results page
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById('results').classList.add('active');
+
+            const buttons = document.querySelectorAll('.nav-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+        });
+
+        // Initialize - load all dogs on page load
+        renderAllDogs();
     </script>
 </body>
 </html>
