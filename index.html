@@ -93,7 +93,9 @@
             color: #374151;
         }
 
-        .form-group select {
+        .form-group select,
+        .form-group input,
+        .form-group textarea {
             width: 100%;
             padding: 10px 16px;
             border: 1px solid #d1d5db;
@@ -141,6 +143,7 @@
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
+            margin-bottom: 12px;
         }
 
         .tag {
@@ -153,6 +156,7 @@
         .tag-green { background: #d1fae5; color: #065f46; }
         .tag-teal { background: #ccfbf1; color: #115e59; }
         .tag-yellow { background: #fef3c7; color: #92400e; }
+        .tag-orange { background: #fed7aa; color: #9a3412; }
 
         .match-score {
             display: flex;
@@ -251,6 +255,54 @@
             color: #9ca3af;
             margin-bottom: 16px;
         }
+
+        .delete-button {
+            background: #ef4444;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .delete-button:hover {
+            background: #dc2626;
+        }
+
+        .edit-button {
+            background: #3b82f6;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            margin-right: 10px;
+        }
+
+        .edit-button:hover {
+            background: #2563eb;
+        }
+
+        .admin-login {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
     </style>
 </head>
 <body>
@@ -263,7 +315,8 @@
         <div class="nav-buttons">
             <button class="nav-button active" onclick="showPage('about')">ℹ️ About</button>
             <button class="nav-button" onclick="showPage('quiz')">👤 Find Your Match</button>
-            <button class="nav-button" onclick="showPage('all-dogs')">📋 All Dogs (<span id="dog-count">10</span>)</button>
+            <button class="nav-button" onclick="showPage('all-dogs')">📋 All Dogs (<span id="dog-count">0</span>)</button>
+            <button class="nav-button" onclick="showPage('admin')">🔧 Admin</button>
         </div>
 
         <!-- About Page -->
@@ -411,231 +464,270 @@
                 </button>
             </div>
         </div>
+
+        <!-- Admin Page -->
+        <div id="admin" class="page">
+            <!-- Login -->
+            <div id="admin-login" class="admin-login card">
+                <h2 style="margin-bottom: 24px; text-align: center;">Admin Login</h2>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="admin-password" placeholder="Enter admin password">
+                </div>
+                <button onclick="checkAdminPassword()" class="submit-button">Login</button>
+                <p id="login-error" style="color: #ef4444; margin-top: 10px; text-align: center; display: none;">Incorrect password</p>
+            </div>
+
+            <!-- Admin Panel -->
+            <div id="admin-panel" style="display: none;">
+                <div style="max-width: 800px; margin: 0 auto;">
+                    <h2 style="font-size: 28px; margin-bottom: 24px; text-align: center;">Admin Panel</h2>
+                    
+                    <!-- Add Dog Form -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 20px;">Add New Dog</h3>
+                        <form id="add-dog-form">
+                            <div class="form-group">
+                                <label>Name *</label>
+                                <input type="text" id="new-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Sex *</label>
+                                <select id="new-sex" required>
+                                    <option value="">Select...</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Breed *</label>
+                                <input type="text" id="new-breed" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Age *</label>
+                                <input type="text" id="new-age" placeholder="e.g., 3 years, 6 months" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Size *</label>
+                                <select id="new-size" required>
+                                    <option value="small">Small</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="large">Large</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Energy Level *</label>
+                                <select id="new-energy" required>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Temperament (comma-separated)</label>
+                                <input type="text" id="new-temperament" placeholder="e.g., Friendly, Playful, Sweet">
+                            </div>
+                            <div class="form-group">
+                                <label>Grooming Needs *</label>
+                                <select id="new-grooming" required>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Good with Other Dogs? *</label>
+                                <select id="new-good-dogs" required>
+                                    <option value="yes">Yes</option>
+                                    <option value="no">No</option>
+                                    <option value="unknown">Unknown</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Good with Cats? *</label>
+                                <select id="new-good-cats" required>
+                                    <option value="yes">Yes</option>
+                                    <option value="no">No</option>
+                                    <option value="unknown">Unknown</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Good with Kids? *</label>
+                                <select id="new-good-kids" required>
+                                    <option value="yes">Yes</option>
+                                    <option value="no">No</option>
+                                    <option value="unknown">Unknown</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <div class="checkbox-group">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="new-hypoallergenic">
+                                        <label for="new-hypoallergenic" style="margin: 0;">Hypoallergenic</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="new-potty">
+                                        <label for="new-potty" style="margin: 0;">Potty Trained</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="new-leash">
+                                        <label for="new-leash" style="margin: 0;">Leash Trained</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="new-crate">
+                                        <label for="new-crate" style="margin: 0;">Crate Trained</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="submit-button">Add Dog to Database</button>
+                        </form>
+                    </div>
+
+                    <!-- Existing Dogs List -->
+                    <div class="card" style="margin-top: 30px;">
+                        <h3 style="margin-bottom: 20px;">Manage Existing Dogs</h3>
+                        <div id="admin-dogs-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script>
-        // Dog data
-        const dogs = [
-            {
-                name: "Muffin",
-                sex: "Female",
-                breed: "Basset Hound & Hound Mix",
-                age: "4 years",
-                size: "medium",
-                energy: "high",
-                temperament: ["Friendly", "Social", "Sweet"],
-                grooming: "low",
-                experience: "any",
-                hypoallergenic: false,
-                pottyTrained: true,
-                leashTrained: true,
-                crateTrained: true,
-                goodWithDogs: "yes",
-                goodWithCats: "no",
-                goodWithKids: "yes",
-                image: "images/muffin.jpg"
-            },
-            {
-                name: "Julius",
-                sex: "Male",
-                breed: "Australian Cattle Dog & Blue Heeler & Hound Mix",
-                age: "6 months",
-                size: "medium",
-                energy: "high",
-                temperament: ["Playful", "Sweet"],
-                grooming: "low",
-                experience: "any",
-                hypoallergenic: false,
-                pottyTrained: true,
-                leashTrained: true,
-                crateTrained: true,
-                goodWithDogs: "yes",
-                goodWithCats: "unknown",
-                goodWithKids: "yes",
-                image: "images/julius.jpg"
-            },
-            {
-                name: "Mollie",
-                sex: "Female",
-                breed: "Shepherd Mix",
-                age: "10 years",
-                size: "medium",
-                energy: "medium",
-                temperament: ["Friendly", "Gentle", "Anxious"],
-                grooming: "medium",
-                experience: "any",
-                hypoallergenic: false,
-                pottyTrained: true,
-                leashTrained: true,
-                crateTrained: true,
-                goodWithDogs: "yes",
-                goodWithCats: "no",
-                goodWithKids: "yes",
-                image: null
-            },
-            {
-                name: "Buttermilk",
-                sex: "Male",
-                breed: "Terrier Mix",
-                age: "6 months",
-                size: "medium",
-                energy: "high",
-                temperament: ["Friendly", "Active"],
-                grooming: "low",
-                experience: "any",
-                hypoallergenic: false,
-                pottyTrained: false,
-                leashTrained: false,
-                crateTrained: false,
-                goodWithDogs: "yes",
-                goodWithCats: "unknown",
-                goodWithKids: "no",
-                image: "images/buttermilk.jpg"
-            },
-            {
-                name: "Chrissy",
-                sex: "Female",
-                breed: "Hound Mix",
-                age: "3 years",
-                size: "medium",
-                energy: "high",
-                temperament: ["Loving", "Excitable"],
-                grooming: "low",
-                experience: "any",
-                hypoallergenic: false,
-                pottyTrained: true,
-                leashTrained: false,
-                crateTrained: true,
-                goodWithDogs: "yes",
-                goodWithCats: "no",
-                goodWithKids: "yes",
-                image: "images/chrissy.jpg"
-            },
-            {
-                name: "Lotte",
-                sex: "Female",
-                breed: "Mountain Cur Mix",
-                age: "8 years",
-                size: "medium",
-                energy: "medium",
-                temperament: ["Anxious", "Smart", "Loving"],
-                grooming: "low",
-                experience: "any",
-                hypoallergenic: false,
-                pottyTrained: true,
-                leashTrained: true,
-                crateTrained: true,
-                goodWithDogs: "yes",
-                goodWithCats: "unknown",
-                goodWithKids: "no",
-                image: "images/lotte.jpg"
-            },
-            {
-                name: "Waffles",
-                sex: "Male",
-                breed: "Terrier Mix",
-                age: "6 months",
-                size: "medium",
-                energy: "high",
-                temperament: ["Friendly", "Active"],
-                grooming: "low",
-                experience: "any",
-                hypoallergenic: false,
-                pottyTrained: false,
-                leashTrained: false,
-                crateTrained: false,
-                goodWithDogs: "yes",
-                goodWithCats: "unknown",
-                goodWithKids: "no",
-                image: "images/waffles.jpg"
-            },
-            {
-                name: "Lacey Lou",
-                sex: "Female",
-                breed: "Hound & Mixed Breed Mix",
-                age: "7 months",
-                size: "medium",
-                energy: "high",
-                temperament: ["Social", "Sweet"],
-                grooming: "low",
-                experience: "any",
-                hypoallergenic: false,
-                pottyTrained: false,
-                leashTrained: false,
-                crateTrained: true,
-                goodWithDogs: "yes",
-                goodWithCats: "unknown",
-                goodWithKids: "no",
-                image: "images/lacey-lou.jpg"
-            },
-            {
-                name: "Copper",
-                sex: "Male",
-                breed: "Australian Cattle Dog & Labrador Retriever Mix",
-                age: "4 years",
-                size: "medium",
-                energy: "high",
-                temperament: ["Affectionate", "Smart"],
-                grooming: "low",
-                experience: "any",
-                hypoallergenic: false,
-                pottyTrained: true,
-                leashTrained: true,
-                crateTrained: true,
-                goodWithDogs: "yes",
-                goodWithCats: "yes",
-                goodWithKids: "no",
-                image: "images/copper.jpg"
-            },
-            {
-                name: "Cagney",
-                sex: "Female",
-                breed: "Chesapeake Bay Retriever & Hound",
-                age: "6 months",
-                size: "medium",
-                energy: "high",
-                temperament: ["Outgoing", "Friendly"],
-                grooming: "low",
-                experience: "any",
-                hypoallergenic: false,
-                pottyTrained: true,
-                leashTrained: false,
-                crateTrained: false,
-                goodWithDogs: "yes",
-                goodWithCats: "yes",
-                goodWithKids: "no",
-                image: "images/cagney.jpg"
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBsv-6LGQGxptJkgL9sjTADBzJu1eRUWAg",
+          authDomain: "dogmatchingquiz.firebaseapp.com",
+          projectId: "dogmatchingquiz",
+          storageBucket: "dogmatchingquiz.firebasestorage.app",
+          messagingSenderId: "476708214294",
+          appId: "1:476708214294:web:0b7a3a0296768bdc980737",
+          measurementId: "G-HPVK15E1GF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        let allDogs = [];
+        const ADMIN_PASSWORD = "admin123"; // Change this to your preferred password
+
+        // Load dogs from Firebase
+        async function loadDogs() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "dogs"));
+                allDogs = [];
+                querySnapshot.forEach((doc) => {
+                    allDogs.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                document.getElementById('dog-count').textContent = allDogs.length;
+                return allDogs;
+            } catch (error) {
+                console.error("Error loading dogs:", error);
+                return [];
             }
-        ];
-
-        // Update dog count
-        document.getElementById('dog-count').textContent = dogs.length;
-
-        // Show/hide pet type based on has pets selection
-        document.getElementById('has-pets').addEventListener('change', function() {
-            const petTypeGroup = document.getElementById('pet-type-group');
-            petTypeGroup.style.display = this.value === 'yes' ? 'block' : 'none';
-        });
+        }
 
         // Page navigation
-        function showPage(pageName) {
-            // Hide all pages
+        window.showPage = async function(pageName) {
             const pages = document.querySelectorAll('.page');
             pages.forEach(page => page.classList.remove('active'));
 
-            // Hide all active buttons
             const buttons = document.querySelectorAll('.nav-button');
             buttons.forEach(btn => btn.classList.remove('active'));
 
-            // Show selected page
             document.getElementById(pageName).classList.add('active');
-
-            // Highlight active button
             event.target.classList.add('active');
 
-            // If showing all dogs, render them
             if (pageName === 'all-dogs') {
+                await loadDogs();
                 renderAllDogs();
+            } else if (pageName === 'admin') {
+                document.getElementById('admin-login').style.display = 'block';
+                document.getElementById('admin-panel').style.display = 'none';
+            }
+        }
+
+        // Admin password check
+        window.checkAdminPassword = function() {
+            const password = document.getElementById('admin-password').value;
+            if (password === ADMIN_PASSWORD) {
+                document.getElementById('admin-login').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                loadDogsForAdmin();
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+            }
+        }
+
+        // Load dogs for admin panel
+        async function loadDogsForAdmin() {
+            await loadDogs();
+            const container = document.getElementById('admin-dogs-list');
+            container.innerHTML = '';
+
+            allDogs.forEach(dog => {
+                const dogDiv = document.createElement('div');
+                dogDiv.style.cssText = 'border: 1px solid #e5e7eb; padding: 16px; border-radius: 8px; margin-bottom: 12px;';
+                dogDiv.innerHTML = `
+                    <h4 style="font-size: 18px; margin-bottom: 8px;">${dog.name}</h4>
+                    <p style="color: #6b7280; font-size: 14px;">${dog.breed} • ${dog.age} • ${dog.sex}</p>
+                    <button class="delete-button" onclick="deleteDog('${dog.id}', '${dog.name}')">Delete</button>
+                `;
+                container.appendChild(dogDiv);
+            });
+        }
+
+        // Add new dog
+        document.getElementById('add-dog-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const temperamentText = document.getElementById('new-temperament').value;
+            const temperamentArray = temperamentText ? temperamentText.split(',').map(t => t.trim()) : [];
+
+            const newDog = {
+                name: document.getElementById('new-name').value,
+                sex: document.getElementById('new-sex').value,
+                breed: document.getElementById('new-breed').value,
+                age: document.getElementById('new-age').value,
+                size: document.getElementById('new-size').value,
+                energy: document.getElementById('new-energy').value,
+                temperament: temperamentArray,
+                grooming: document.getElementById('new-grooming').value,
+                experience: "any",
+                hypoallergenic: document.getElementById('new-hypoallergenic').checked,
+                pottyTrained: document.getElementById('new-potty').checked,
+                leashTrained: document.getElementById('new-leash').checked,
+                crateTrained: document.getElementById('new-crate').checked,
+                goodWithDogs: document.getElementById('new-good-dogs').value,
+                goodWithCats: document.getElementById('new-good-cats').value,
+                goodWithKids: document.getElementById('new-good-kids').value
+            };
+
+            try {
+                await addDoc(collection(db, "dogs"), newDog);
+                alert('✅ Dog added successfully!');
+                document.getElementById('add-dog-form').reset();
+                loadDogsForAdmin();
+            } catch (error) {
+                alert('❌ Error adding dog: ' + error.message);
+            }
+        });
+
+        // Delete dog
+        window.deleteDog = async function(dogId, dogName) {
+            if (confirm(`Are you sure you want to delete ${dogName}?`)) {
+                try {
+                    await deleteDoc(doc(db, "dogs", dogId));
+                    alert('✅ Dog deleted successfully!');
+                    loadDogsForAdmin();
+                } catch (error) {
+                    alert('❌ Error deleting dog: ' + error.message);
+                }
             }
         }
 
@@ -644,7 +736,7 @@
             const container = document.getElementById('all-dogs-list');
             container.innerHTML = '';
 
-            dogs.forEach(dog => {
+            allDogs.forEach(dog => {
                 const dogCard = createDogCard(dog, false);
                 container.appendChild(dogCard);
             });
@@ -657,9 +749,9 @@
 
             let html = '';
 
-            // Add image if exists
-            if (dog.image) {
-                html += `<img src="${dog.image}" alt="${dog.name}" class="dog-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+            const imagePath = `images/${dog.name.toLowerCase().replace(/ /g, '-')}.jpg`;
+            if (dog.name !== 'Mollie') {
+                html += `<img src="${imagePath}" alt="${dog.name}" class="dog-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
                 html += `<div class="no-image" style="display:none;">(Not pictured)</div>`;
             } else {
                 html += `<div class="no-image">(Not pictured)</div>`;
@@ -687,7 +779,24 @@
             if (dog.leashTrained) html += '<span class="tag tag-teal">leash trained</span>';
             if (dog.pottyTrained) html += '<span class="tag tag-teal">potty trained</span>';
             if (dog.crateTrained) html += '<span class="tag tag-teal">crate trained</span>';
+            
+            const isPuppy = dog.age.includes('month') || (parseInt(dog.age) < 2);
+            if (isPuppy) html += '<span class="tag tag-orange">puppy - high energy!</span>';
+            
             html += '</div>';
+
+            if (dog.temperament && dog.temperament.length > 0) {
+                html += `<p style="margin-top: 12px; font-size: 14px;"><strong>Temperament:</strong> ${dog.temperament.join(', ')}</p>`;
+            }
+
+            const compat = [];
+            if (dog.goodWithDogs !== 'unknown') compat.push(`Dogs: ${dog.goodWithDogs}`);
+            if (dog.goodWithCats !== 'unknown') compat.push(`Cats: ${dog.goodWithCats}`);
+            if (dog.goodWithKids !== 'unknown') compat.push(`Kids: ${dog.goodWithKids}`);
+            
+            if (compat.length > 0) {
+                html += `<p style="margin-top: 8px; font-size: 14px;"><strong>Compatibility:</strong> ${compat.join(' • ')}</p>`;
+            }
 
             card.innerHTML = html;
             return card;
@@ -695,22 +804,19 @@
 
         // Calculate match score
         function calculateMatchScore(dog, prefs) {
-            let score = 70; // Base score
+            let score = 70;
             const isPuppy = dog.age.includes('month') || (parseInt(dog.age) < 2);
 
-            // Energy matching
             if (prefs.activity === 'low' && dog.energy === 'high') score -= 25;
             if (prefs.activity === 'active' && dog.energy === 'low') score -= 25;
             if (prefs.activity === 'moderate' && dog.energy === 'medium') score += 15;
             if (prefs.activity === 'active' && dog.energy === 'high') score += 15;
 
-            // Children compatibility
             if (prefs.hasChildren === 'yes') {
                 if (dog.goodWithKids === 'yes') score += 20;
                 else if (dog.goodWithKids === 'no') score -= 30;
             }
 
-            // Pet compatibility
             if (prefs.hasPets === 'yes') {
                 if (prefs.petType === 'dog' && dog.goodWithDogs === 'yes') score += 15;
                 else if (prefs.petType === 'dog' && dog.goodWithDogs === 'no') score -= 30;
@@ -719,16 +825,13 @@
                 else if (prefs.petType === 'cat' && dog.goodWithCats === 'no') score -= 30;
             }
 
-            // Hypoallergenic requirement
             if (prefs.hypoallergenic === 'yes' && !dog.hypoallergenic) score = 0;
 
-            // Training requirements
             if (prefs.trainingTime === 'no') {
                 if (dog.pottyTrained && dog.leashTrained && dog.crateTrained) score += 15;
                 else score -= 20;
             }
 
-            // Puppy considerations
             if (isPuppy) {
                 if (prefs.trainingTime === 'no') score -= 25;
                 if (prefs.activity === 'low') score -= 20;
@@ -737,8 +840,8 @@
             return Math.max(0, Math.min(100, score));
         }
 
-        // Handle form submission
-        document.getElementById('quiz-form').addEventListener('submit', function(e) {
+        // Handle quiz form submission
+        document.getElementById('quiz-form').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const prefs = {
@@ -754,16 +857,15 @@
                 trainingTime: document.getElementById('training-time').value
             };
 
-            // Calculate scores
-            const results = dogs.map(dog => ({
+            await loadDogs();
+
+            const results = allDogs.map(dog => ({
                 dog: dog,
                 score: calculateMatchScore(dog, prefs)
             }));
 
-            // Sort by score
             results.sort((a, b) => b.score - a.score);
 
-            // Render results
             const resultsContainer = document.getElementById('results-list');
             resultsContainer.innerHTML = '';
 
@@ -778,7 +880,6 @@
                 });
             }
 
-            // Show results page
             const pages = document.querySelectorAll('.page');
             pages.forEach(page => page.classList.remove('active'));
             document.getElementById('results').classList.add('active');
@@ -787,8 +888,14 @@
             buttons.forEach(btn => btn.classList.remove('active'));
         });
 
-        // Initialize - load all dogs on page load
-        renderAllDogs();
+        // Show/hide pet type
+        document.getElementById('has-pets').addEventListener('change', function() {
+            const petTypeGroup = document.getElementById('pet-type-group');
+            petTypeGroup.style.display = this.value === 'yes' ? 'block' : 'none';
+        });
+
+        // Initialize
+        loadDogs();
     </script>
 </body>
 </html>
