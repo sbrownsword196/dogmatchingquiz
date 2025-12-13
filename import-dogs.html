@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Dogs to Firebase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        button {
+            background: #9333ea;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #7e22ce;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .loading {
+            background: #fef3c7;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐕 Import Dogs to Firebase</h1>
+    <p>Click the button below to upload all 10 dogs to your Firebase database.</p>
+    <p style="color: #6b7280; font-size: 14px;">You only need to do this once!</p>
+    
+    <button onclick="importDogs()">Import All Dogs to Firebase</button>
+    
+    <div id="status"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBsv-6LGQGxptJkgL9sjTADBzJu1eRUWAg",
+          authDomain: "dogmatchingquiz.firebaseapp.com",
+          projectId: "dogmatchingquiz",
+          storageBucket: "dogmatchingquiz.firebasestorage.app",
+          messagingSenderId: "476708214294",
+          appId: "1:476708214294:web:0b7a3a0296768bdc980737",
+          measurementId: "G-HPVK15E1GF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const dogsData = [
+            {
+                name: "Muffin",
+                sex: "Female",
+                breed: "Basset Hound & Hound Mix",
+                age: "4 years",
+                size: "medium",
+                energy: "high",
+                temperament: ["Friendly", "Social", "Sweet"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: true,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "no",
+                goodWithKids: "yes"
+            },
+            {
+                name: "Julius",
+                sex: "Male",
+                breed: "Australian Cattle Dog & Blue Heeler & Hound Mix",
+                age: "6 months",
+                size: "medium",
+                energy: "high",
+                temperament: ["Playful", "Sweet"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: true,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "unknown",
+                goodWithKids: "yes"
+            },
+            {
+                name: "Mollie",
+                sex: "Female",
+                breed: "Shepherd Mix",
+                age: "10 years",
+                size: "medium",
+                energy: "medium",
+                temperament: ["Friendly", "Gentle", "Anxious"],
+                grooming: "medium",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: true,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "no",
+                goodWithKids: "yes"
+            },
+            {
+                name: "Buttermilk",
+                sex: "Male",
+                breed: "Terrier Mix",
+                age: "6 months",
+                size: "medium",
+                energy: "high",
+                temperament: ["Friendly", "Active"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: false,
+                leashTrained: false,
+                crateTrained: false,
+                goodWithDogs: "yes",
+                goodWithCats: "unknown",
+                goodWithKids: "no"
+            },
+            {
+                name: "Chrissy",
+                sex: "Female",
+                breed: "Hound Mix",
+                age: "3 years",
+                size: "medium",
+                energy: "high",
+                temperament: ["Loving", "Excitable"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: false,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "no",
+                goodWithKids: "yes"
+            },
+            {
+                name: "Lotte",
+                sex: "Female",
+                breed: "Mountain Cur Mix",
+                age: "8 years",
+                size: "medium",
+                energy: "medium",
+                temperament: ["Anxious", "Smart", "Loving"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: true,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "unknown",
+                goodWithKids: "no"
+            },
+            {
+                name: "Waffles",
+                sex: "Male",
+                breed: "Terrier Mix",
+                age: "6 months",
+                size: "medium",
+                energy: "high",
+                temperament: ["Friendly", "Active"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: false,
+                leashTrained: false,
+                crateTrained: false,
+                goodWithDogs: "yes",
+                goodWithCats: "unknown",
+                goodWithKids: "no"
+            },
+            {
+                name: "Lacey Lou",
+                sex: "Female",
+                breed: "Hound & Mixed Breed Mix",
+                age: "7 months",
+                size: "medium",
+                energy: "high",
+                temperament: ["Social", "Sweet"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: false,
+                leashTrained: false,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "unknown",
+                goodWithKids: "no"
+            },
+            {
+                name: "Copper",
+                sex: "Male",
+                breed: "Australian Cattle Dog & Labrador Retriever Mix",
+                age: "4 years",
+                size: "medium",
+                energy: "high",
+                temperament: ["Affectionate", "Smart"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: true,
+                crateTrained: true,
+                goodWithDogs: "yes",
+                goodWithCats: "yes",
+                goodWithKids: "no"
+            },
+            {
+                name: "Cagney",
+                sex: "Female",
+                breed: "Chesapeake Bay Retriever & Hound",
+                age: "6 months",
+                size: "medium",
+                energy: "high",
+                temperament: ["Outgoing", "Friendly"],
+                grooming: "low",
+                experience: "any",
+                hypoallergenic: false,
+                pottyTrained: true,
+                leashTrained: false,
+                crateTrained: false,
+                goodWithDogs: "yes",
+                goodWithCats: "yes",
+                goodWithKids: "no"
+            }
+        ];
+
+        window.importDogs = async function() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'loading';
+            statusDiv.textContent = 'Importing dogs to Firebase...';
+
+            try {
+                let count = 0;
+                for (const dog of dogsData) {
+                    await addDoc(collection(db, "dogs"), dog);
+                    count++;
+                    statusDiv.textContent = `Imported ${count} of ${dogsData.length} dogs...`;
+                }
+
+                statusDiv.className = 'success';
+                statusDiv.innerHTML = `✅ Success! All ${dogsData.length} dogs have been imported to Firebase!<br><br>You can now close this page and delete this file. Your dogs are permanently stored in the database.`;
+            } catch (error) {
+                statusDiv.className = 'error';
+                statusDiv.textContent = `❌ Error: ${error.message}`;
+                console.error("Error importing dogs:", error);
+            }
+        }
+    </script>
+</body>
+</html>
