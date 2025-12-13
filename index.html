@@ -303,6 +303,31 @@
             align-items: center;
             gap: 5px;
         }
+
+        .warnings-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .warnings-box p {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #92400e;
+        }
+
+        .warnings-box ul {
+            font-size: 13px;
+            color: #78350f;
+            margin-left: 20px;
+        }
+
+        .warnings-box li {
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
@@ -338,7 +363,7 @@
                 </ul>
 
                 <h3>Research-Based Matching</h3>
-                <p>Our system incorporates veterinary research and breed-specific knowledge to ensure responsible matches. For example, we account for the fact that puppies under 2 years old require significant time, training, and energy.</p>
+                <p>Our system incorporates veterinary research and breed-specific knowledge to ensure responsible matches. For example, we account for the fact that puppies under 2 years old require significant time, training, and energy - and may not be suitable for apartment living without outdoor access.</p>
 
                 <h3>Get Started</h3>
                 <p>Click "Find Your Match" to take our comprehensive questionnaire, or browse "All Dogs" to see every available companion.</p>
@@ -595,7 +620,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBsv-6LGQGxptJkgL9sjTADBzJu1eRUWAg",
@@ -611,17 +636,17 @@
         const db = getFirestore(app);
         
         let allDogs = [];
-        const ADMIN_PASSWORD = "admin123"; // Change this to your preferred password
+        const ADMIN_PASSWORD = "admin123"; // CHANGE THIS to your secure password
 
         // Load dogs from Firebase
         async function loadDogs() {
             try {
                 const querySnapshot = await getDocs(collection(db, "dogs"));
                 allDogs = [];
-                querySnapshot.forEach((doc) => {
+                querySnapshot.forEach((docSnapshot) => {
                     allDogs.push({
-                        id: doc.id,
-                        ...doc.data()
+                        id: docSnapshot.id,
+                        ...docSnapshot.data()
                     });
                 });
                 document.getElementById('dog-count').textContent = allDogs.length;
@@ -632,270 +657,7 @@
             }
         }
 
-        // Page navigation
-        window.showPage = async function(pageName) {
-            const pages = document.querySelectorAll('.page');
-            pages.forEach(page => page.classList.remove('active'));
-
-            const buttons = document.querySelectorAll('.nav-button');
-            buttons.forEach(btn => btn.classList.remove('active'));
-
-            document.getElementById(pageName).classList.add('active');
-            event.target.classList.add('active');
-
-            if (pageName === 'all-dogs') {
-                await loadDogs();
-                renderAllDogs();
-            } else if (pageName === 'admin') {
-                document.getElementById('admin-login').style.display = 'block';
-                document.getElementById('admin-panel').style.display = 'none';
-            }
-        }
-
-        // Admin password check
-        window.checkAdminPassword = function() {
-            const password = document.getElementById('admin-password').value;
-            if (password === ADMIN_PASSWORD) {
-                document.getElementById('admin-login').style.display = 'none';
-                document.getElementById('admin-panel').style.display = 'block';
-                loadDogsForAdmin();
-            } else {
-                document.getElementById('login-error').style.display = 'block';
-            }
-        }
-
-        // Load dogs for admin panel
-        async function loadDogsForAdmin() {
-            await loadDogs();
-            const container = document.getElementById('admin-dogs-list');
-            container.innerHTML = '';
-
-            allDogs.forEach(dog => {
-                const dogDiv = document.createElement('div');
-                dogDiv.style.cssText = 'border: 1px solid #e5e7eb; padding: 16px; border-radius: 8px; margin-bottom: 12px;';
-                dogDiv.innerHTML = `
-                    <h4 style="font-size: 18px; margin-bottom: 8px;">${dog.name}</h4>
-                    <p style="color: #6b7280; font-size: 14px;">${dog.breed} • ${dog.age} • ${dog.sex}</p>
-                    <button class="delete-button" onclick="deleteDog('${dog.id}', '${dog.name}')">Delete</button>
-                `;
-                container.appendChild(dogDiv);
-            });
-        }
-
-        // Add new dog
-        document.getElementById('add-dog-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const temperamentText = document.getElementById('new-temperament').value;
-            const temperamentArray = temperamentText ? temperamentText.split(',').map(t => t.trim()) : [];
-
-            const newDog = {
-                name: document.getElementById('new-name').value,
-                sex: document.getElementById('new-sex').value,
-                breed: document.getElementById('new-breed').value,
-                age: document.getElementById('new-age').value,
-                size: document.getElementById('new-size').value,
-                energy: document.getElementById('new-energy').value,
-                temperament: temperamentArray,
-                grooming: document.getElementById('new-grooming').value,
-                experience: "any",
-                hypoallergenic: document.getElementById('new-hypoallergenic').checked,
-                pottyTrained: document.getElementById('new-potty').checked,
-                leashTrained: document.getElementById('new-leash').checked,
-                crateTrained: document.getElementById('new-crate').checked,
-                goodWithDogs: document.getElementById('new-good-dogs').value,
-                goodWithCats: document.getElementById('new-good-cats').value,
-                goodWithKids: document.getElementById('new-good-kids').value
-            };
-
-            try {
-                await addDoc(collection(db, "dogs"), newDog);
-                alert('✅ Dog added successfully!');
-                document.getElementById('add-dog-form').reset();
-                loadDogsForAdmin();
-            } catch (error) {
-                alert('❌ Error adding dog: ' + error.message);
-            }
-        });
-
-        // Delete dog
-        window.deleteDog = async function(dogId, dogName) {
-            if (confirm(`Are you sure you want to delete ${dogName}?`)) {
-                try {
-                    await deleteDoc(doc(db, "dogs", dogId));
-                    alert('✅ Dog deleted successfully!');
-                    loadDogsForAdmin();
-                } catch (error) {
-                    alert('❌ Error deleting dog: ' + error.message);
-                }
-            }
-        }
-
-        // Render all dogs
-        function renderAllDogs() {
-            const container = document.getElementById('all-dogs-list');
-            container.innerHTML = '';
-
-            allDogs.forEach(dog => {
-                const dogCard = createDogCard(dog, false);
-                container.appendChild(dogCard);
-            });
-        }
-
-        // Create dog card element
-        function createDogCard(dog, showScore = false, score = 0) {
-            const card = document.createElement('div');
-            card.className = 'dog-card';
-
-            let html = '';
-
-            const imagePath = `images/${dog.name.toLowerCase().replace(/ /g, '-')}.jpg`;
-            if (dog.name !== 'Mollie') {
-                html += `<img src="${imagePath}" alt="${dog.name}" class="dog-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
-                html += `<div class="no-image" style="display:none;">(Not pictured)</div>`;
-            } else {
-                html += `<div class="no-image">(Not pictured)</div>`;
-            }
-
-            if (showScore) {
-                html += '<div class="match-score">';
-                html += '<div>';
-                html += `<h3>${dog.name}${score >= 80 ? '<span class="best-match-badge">❤️ Best Match</span>' : ''}</h3>`;
-                html += `<p class="dog-info">${dog.breed} • ${dog.age} • ${dog.sex}</p>`;
-                html += '</div>';
-                html += '<div class="score-display">';
-                html += `<div class="score-number">${score}%</div>`;
-                html += '<div class="score-label">Match</div>';
-                html += '</div>';
-                html += '</div>';
-            } else {
-                html += `<h3>${dog.name}</h3>`;
-                html += `<p class="dog-info">${dog.breed} • ${dog.age} • ${dog.sex}</p>`;
-            }
-
-            html += '<div class="tags">';
-            html += `<span class="tag tag-blue">${dog.size}</span>`;
-            html += `<span class="tag tag-green">${dog.energy} energy</span>`;
-            if (dog.leashTrained) html += '<span class="tag tag-teal">leash trained</span>';
-            if (dog.pottyTrained) html += '<span class="tag tag-teal">potty trained</span>';
-            if (dog.crateTrained) html += '<span class="tag tag-teal">crate trained</span>';
-            
-            const isPuppy = dog.age.includes('month') || (parseInt(dog.age) < 2);
-            if (isPuppy) html += '<span class="tag tag-orange">puppy - high energy!</span>';
-            
-            html += '</div>';
-
-            if (dog.temperament && dog.temperament.length > 0) {
-                html += `<p style="margin-top: 12px; font-size: 14px;"><strong>Temperament:</strong> ${dog.temperament.join(', ')}</p>`;
-            }
-
-            const compat = [];
-            if (dog.goodWithDogs !== 'unknown') compat.push(`Dogs: ${dog.goodWithDogs}`);
-            if (dog.goodWithCats !== 'unknown') compat.push(`Cats: ${dog.goodWithCats}`);
-            if (dog.goodWithKids !== 'unknown') compat.push(`Kids: ${dog.goodWithKids}`);
-            
-            if (compat.length > 0) {
-                html += `<p style="margin-top: 8px; font-size: 14px;"><strong>Compatibility:</strong> ${compat.join(' • ')}</p>`;
-            }
-
-            card.innerHTML = html;
-            return card;
-        }
-
-        // Calculate match score
+        // Enhanced matching algorithm with breed intelligence
         function calculateMatchScore(dog, prefs) {
-            let score = 70;
-            const isPuppy = dog.age.includes('month') || (parseInt(dog.age) < 2);
-
-            if (prefs.activity === 'low' && dog.energy === 'high') score -= 25;
-            if (prefs.activity === 'active' && dog.energy === 'low') score -= 25;
-            if (prefs.activity === 'moderate' && dog.energy === 'medium') score += 15;
-            if (prefs.activity === 'active' && dog.energy === 'high') score += 15;
-
-            if (prefs.hasChildren === 'yes') {
-                if (dog.goodWithKids === 'yes') score += 20;
-                else if (dog.goodWithKids === 'no') score -= 30;
-            }
-
-            if (prefs.hasPets === 'yes') {
-                if (prefs.petType === 'dog' && dog.goodWithDogs === 'yes') score += 15;
-                else if (prefs.petType === 'dog' && dog.goodWithDogs === 'no') score -= 30;
-                
-                if (prefs.petType === 'cat' && dog.goodWithCats === 'yes') score += 15;
-                else if (prefs.petType === 'cat' && dog.goodWithCats === 'no') score -= 30;
-            }
-
-            if (prefs.hypoallergenic === 'yes' && !dog.hypoallergenic) score = 0;
-
-            if (prefs.trainingTime === 'no') {
-                if (dog.pottyTrained && dog.leashTrained && dog.crateTrained) score += 15;
-                else score -= 20;
-            }
-
-            if (isPuppy) {
-                if (prefs.trainingTime === 'no') score -= 25;
-                if (prefs.activity === 'low') score -= 20;
-            }
-
-            return Math.max(0, Math.min(100, score));
-        }
-
-        // Handle quiz form submission
-        document.getElementById('quiz-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const prefs = {
-                livingSpace: document.getElementById('living-space').value,
-                hasYard: document.getElementById('has-yard').value,
-                experience: document.getElementById('experience').value,
-                activity: document.getElementById('activity').value,
-                hasChildren: document.getElementById('has-children').value,
-                hasPets: document.getElementById('has-pets').value,
-                petType: document.getElementById('pet-type').value,
-                groomingTime: document.getElementById('grooming-time').value,
-                hypoallergenic: document.getElementById('hypoallergenic').value,
-                trainingTime: document.getElementById('training-time').value
-            };
-
-            await loadDogs();
-
-            const results = allDogs.map(dog => ({
-                dog: dog,
-                score: calculateMatchScore(dog, prefs)
-            }));
-
-            results.sort((a, b) => b.score - a.score);
-
-            const resultsContainer = document.getElementById('results-list');
-            resultsContainer.innerHTML = '';
-
-            if (results.every(r => r.score === 0)) {
-                resultsContainer.innerHTML = '<div class="card" style="text-align: center;"><p style="font-size: 18px; margin-bottom: 16px;">No hypoallergenic dogs are currently available.</p><p style="color: #6b7280;">Please adjust your preferences or check back later.</p></div>';
-            } else {
-                results.forEach((result, index) => {
-                    if (result.score > 0) {
-                        const card = createDogCard(result.dog, true, result.score);
-                        resultsContainer.appendChild(card);
-                    }
-                });
-            }
-
-            const pages = document.querySelectorAll('.page');
-            pages.forEach(page => page.classList.remove('active'));
-            document.getElementById('results').classList.add('active');
-
-            const buttons = document.querySelectorAll('.nav-button');
-            buttons.forEach(btn => btn.classList.remove('active'));
-        });
-
-        // Show/hide pet type
-        document.getElementById('has-pets').addEventListener('change', function() {
-            const petTypeGroup = document.getElementById('pet-type-group');
-            petTypeGroup.style.display = this.value === 'yes' ? 'block' : 'none';
-        });
-
-        // Initialize
-        loadDogs();
-    </script>
-</body>
-</html>
+            let score = 0;
+            l
