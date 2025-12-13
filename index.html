@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+]<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -271,22 +271,6 @@
             background: #dc2626;
         }
 
-        .edit-button {
-            background: #3b82f6;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 10px;
-            margin-right: 10px;
-        }
-
-        .edit-button:hover {
-            background: #2563eb;
-        }
-
         .admin-login {
             max-width: 400px;
             margin: 100px auto;
@@ -338,10 +322,10 @@
         </div>
 
         <div class="nav-buttons">
-            <button class="nav-button active" onclick="showPage('about')">ℹ️ About</button>
-            <button class="nav-button" onclick="showPage('quiz')">👤 Find Your Match</button>
-            <button class="nav-button" onclick="showPage('all-dogs')">📋 All Dogs (<span id="dog-count">0</span>)</button>
-            <button class="nav-button" onclick="showPage('admin')">🔧 Admin</button>
+            <button class="nav-button active" data-page="about">ℹ️ About</button>
+            <button class="nav-button" data-page="quiz">👤 Find Your Match</button>
+            <button class="nav-button" data-page="all-dogs">📋 All Dogs (<span id="dog-count">0</span>)</button>
+            <button class="nav-button" data-page="admin">🔧 Admin</button>
         </div>
 
         <!-- About Page -->
@@ -484,7 +468,7 @@
             </div>
             <div id="results-list"></div>
             <div style="text-align: center; margin-top: 30px;">
-                <button onclick="showPage('quiz')" style="padding: 12px 24px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                <button id="back-to-quiz" style="padding: 12px 24px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
                     Adjust Preferences
                 </button>
             </div>
@@ -499,7 +483,7 @@
                     <label>Password</label>
                     <input type="password" id="admin-password" placeholder="Enter admin password">
                 </div>
-                <button onclick="checkAdminPassword()" class="submit-button">Login</button>
+                <button id="admin-login-btn" class="submit-button">Login</button>
                 <p id="login-error" style="color: #ef4444; margin-top: 10px; text-align: center; display: none;">Incorrect password</p>
             </div>
 
@@ -636,7 +620,7 @@
         const db = getFirestore(app);
         
         let allDogs = [];
-        const ADMIN_PASSWORD = "admin123"; // CHANGE THIS to your secure password
+        const ADMIN_PASSWORD = "admin123"; // CHANGE THIS PASSWORD!
 
         // Load dogs from Firebase
         async function loadDogs() {
@@ -653,6 +637,7 @@
                 return allDogs;
             } catch (error) {
                 console.error("Error loading dogs:", error);
+                alert("Error loading dogs from database. Check console for details.");
                 return [];
             }
         }
@@ -660,4 +645,476 @@
         // Enhanced matching algorithm with breed intelligence
         function calculateMatchScore(dog, prefs) {
             let score = 0;
-            l
+            let maxScore = 0;
+            let warnings = [];
+            
+            const isPuppy = dog.age.includes('month') || dog.age.includes('week') || 
+                            (dog.age.match(/(\d+)/) && parseInt(dog.age.match(/(\d+)/)[0]) < 2);
+
+            const highEnergyBreeds = ['australian cattle dog', 'blue heeler', 'border collie', 
+                                      'australian shepherd', 'jack russell', 'husky', 'vizsla', 
+                                      'weimaraner', 'belgian malinois', 'retriever', 'chesapeake'];
+            const isHighEnergyBreed = highEnergyBreeds.some(breed => 
+                dog.breed.toLowerCase().includes(breed)
+            );
+
+            // PUPPY REQUIREMENTS
+            if (isPuppy) {
+                maxScore += 30;
+                if (prefs.trainingTime === 'no') {
+                    warnings.push('⚠️ Puppies require extensive daily training and supervision');
+                    score += 3;
+                } else {
+                    score += 30;
+                }
+
+                maxScore += 25;
+                if (prefs.livingSpace === 'apartment' && prefs.hasYard === 'no') {
+                    warnings.push('⚠️ Puppies need outdoor access multiple times daily for house training');
+                    score += 5;
+                } else {
+                    score += 25;
+                }
+
+                maxScore += 25;
+                if (prefs.activity === 'low') {
+                    warnings.push('⚠️ Puppies need active play and exercise sessions multiple times per day');
+                    score += 3;
+                } else if (prefs.activity === 'moderate') {
+                    score += 20;
+                } else {
+                    score += 25;
+                }
+
+                maxScore += 15;
+                if (prefs.experience === 'none') {
+                    warnings.push('⚠️ Puppies are challenging for first-time owners - consider puppy training classes');
+                    score += 5;
+                } else if (prefs.experience === 'some') {
+                    score += 12;
+                } else {
+                    score += 15;
+                }
+            }
+
+            // HIGH-ENERGY BREED CONSIDERATIONS
+            if (isHighEnergyBreed || dog.energy === 'high') {
+                maxScore += 35;
+                if (prefs.activity === 'low') {
+                    warnings.push('🚫 CRITICAL: This breed needs 1-2 hours of vigorous exercise daily - lack of exercise leads to destructive behavior');
+                    score += 3;
+                } else if (prefs.activity === 'moderate') {
+                    if (isHighEnergyBreed) {
+                        warnings.push('ℹ️ Working breeds need mental stimulation and jobs/activities beyond regular walks (agility, fetch, training games)');
+                        score += 20;
+                    } else {
+                        score += 28;
+                    }
+                } else {
+                    score += 35;
+                }
+
+                // Critical incompatibility check
+                if (prefs.livingSpace === 'apartment' && prefs.hasYard === 'no' && prefs.activity === 'low') {
+                    warnings.push('🚫 INCOMPATIBLE: High-energy dogs in apartments without yards require multiple long walks daily minimum');
+                    score -= 50;
+                }
+            } else if (dog.energy === 'medium') {
+                maxScore += 35;
+                if (prefs.activity === 'low') score += 20;
+                else if (prefs.activity === 'moderate') score += 35;
+                else score += 28;
+            } else {
+                maxScore += 35;
+                if (prefs.activity === 'low') score += 35;
+                else if (prefs.activity === 'moderate') score += 30;
+                else score += 22;
+            }
+
+            // Size and living space
+            maxScore += 20;
+            if (prefs.livingSpace === 'apartment') {
+                if (dog.size === 'small') score += 20;
+                else if (dog.size === 'medium') {
+                    score += 14;
+                    if (prefs.hasYard === 'no') {
+                        warnings.push('ℹ️ Medium dogs in apartments need regular outdoor exercise time');
+                    }
+                } else {
+                    score += 8;
+                    warnings.push('⚠️ Large dogs need substantial space - apartments can be challenging');
+                }
+            } else {
+                score += 20;
+            }
+
+            // Training requirements
+            if (prefs.trainingTime === 'no' && !isPuppy) {
+                maxScore += 20;
+                if (dog.pottyTrained && dog.leashTrained && dog.crateTrained) {
+                    score += 20;
+                } else {
+                    const missing = [];
+                    if (!dog.pottyTrained) missing.push('potty');
+                    if (!dog.leashTrained) missing.push('leash');
+                    if (!dog.crateTrained) missing.push('crate');
+                    warnings.push(`⚠️ Needs ${missing.join(', ')} training - requires time commitment`);
+                    score += 5;
+                }
+            }
+
+            // Children compatibility - CRITICAL
+            if (prefs.hasChildren === 'yes') {
+                maxScore += 30;
+                if (dog.goodWithKids === 'yes') {
+                    score += 30;
+                    if (isPuppy) {
+                        warnings.push('ℹ️ Puppies need close supervision with children while learning bite inhibition and boundaries');
+                    }
+                } else if (dog.goodWithKids === 'unknown') {
+                    score += 12;
+                    warnings.push('⚠️ Child compatibility unknown - supervised meet-and-greet essential before adoption');
+                } else {
+                    score += 0;
+                    warnings.push('🚫 NOT recommended for homes with young children (5 and under)');
+                }
+            }
+
+            // Pet compatibility - CRITICAL
+            if (prefs.hasPets === 'yes') {
+                maxScore += 25;
+                let petScore = 0;
+                if (prefs.petType === 'dog' || prefs.petType === 'both') {
+                    if (dog.goodWithDogs === 'yes') petScore += 15;
+                    else if (dog.goodWithDogs === 'unknown') {
+                        petScore += 8;
+                        warnings.push('⚠️ Dog compatibility unknown - slow, supervised introduction required');
+                    } else {
+                        warnings.push('🚫 NOT recommended for homes with other dogs');
+                    }
+                }
+                if (prefs.petType === 'cat' || prefs.petType === 'both') {
+                    if (dog.goodWithCats === 'yes') petScore += 10;
+                    else if (dog.goodWithCats === 'unknown') {
+                        petScore += 5;
+                        warnings.push('⚠️ Cat compatibility unknown - careful, gradual introduction essential');
+                    } else {
+                        warnings.push('🚫 NOT recommended for homes with cats');
+                    }
+                }
+                score += petScore;
+            }
+
+            // Grooming
+            maxScore += 10;
+            const groomingMap = { low: 0, medium: 1, high: 2 };
+            const groomingDiff = Math.abs((groomingMap[dog.grooming] || 1) - (groomingMap[prefs.groomingTime] || 1));
+            if (groomingDiff === 0) score += 10;
+            else if (groomingDiff === 1) score += 7;
+            else score += 4;
+
+            // Hypoallergenic - ABSOLUTE requirement
+            if (prefs.hypoallergenic === 'yes') {
+                maxScore += 30;
+                if (dog.hypoallergenic) {
+                    score += 30;
+                } else {
+                    score = 0;
+                    warnings.push('🚫 Not hypoallergenic - will trigger allergic reactions');
+                }
+            }
+
+            score = Math.max(0, score);
+            maxScore = maxScore || 100;
+            const percentage = Math.round((score / maxScore) * 100);
+
+            return {
+                score: Math.max(0, Math.min(100, percentage)),
+                warnings: warnings
+            };
+        }
+
+        // Create dog card element
+        function createDogCard(dog, showScore = false, score = 0, warnings = []) {
+            const card = document.createElement('div');
+            card.className = 'dog-card';
+
+            let html = '';
+
+            const imagePath = `images/${dog.name.toLowerCase().replace(/ /g, '-')}.jpg`;
+            if (dog.name !== 'Mollie') {
+                html += `<img src="${imagePath}" alt="${dog.name}" class="dog-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
+                html += `<div class="no-image" style="display:none;">(Not pictured)</div>`;
+            } else {
+                html += `<div class="no-image">(Not pictured)</div>`;
+            }
+
+            if (showScore) {
+                html += '<div class="match-score">';
+                html += '<div>';
+                html += `<h3>${dog.name}${score >= 75 ? '<span class="best-match-badge">❤️ Best Match</span>' : ''}</h3>`;
+                html += `<p class="dog-info">${dog.breed} • ${dog.age} • ${dog.sex}</p>`;
+                html += '</div>';
+                html += '<div class="score-display">';
+                html += `<div class="score-number">${score}%</div>`;
+                html += '<div class="score-label">Match</div>';
+                html += '</div>';
+                html += '</div>';
+
+                if (warnings && warnings.length > 0) {
+                    html += '<div class="warnings-box">';
+                    html += '<p>Important Considerations:</p>';
+                    html += '<ul>';
+                    warnings.forEach(warning => {
+                        html += `<li>${warning}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+            } else {
+                html += `<h3>${dog.name}</h3>`;
+                html += `<p class="dog-info">${dog.breed} • ${dog.age} • ${dog.sex}</p>`;
+            }
+
+            html += '<div class="tags">';
+            html += `<span class="tag tag-blue">${dog.size}</span>`;
+            html += `<span class="tag tag-green">${dog.energy} energy</span>`;
+            if (dog.leashTrained) html += '<span class="tag tag-teal">leash trained</span>';
+            if (dog.pottyTrained) html += '<span class="tag tag-teal">potty trained</span>';
+            if (dog.crateTrained) html += '<span class="tag tag-teal">crate trained</span>';
+            
+            const isPuppy = dog.age.includes('month') || (parseInt(dog.age) < 2);
+            if (isPuppy) html += '<span class="tag tag-orange">puppy - high energy!</span>';
+            
+            html += '</div>';
+
+            if (dog.temperament && dog.temperament.length > 0) {
+                const tempDisplay = Array.isArray(dog.temperament) ? dog.temperament.join(', ') : dog.temperament;
+                html += `<p style="margin-top: 12px; font-size: 14px;"><strong>Temperament:</strong> ${tempDisplay}</p>`;
+            }
+
+            const compat = [];
+            if (dog.goodWithDogs && dog.goodWithDogs !== 'unknown') compat.push(`Dogs: ${dog.goodWithDogs}`);
+            if (dog.goodWithCats && dog.goodWithCats !== 'unknown') compat.push(`Cats: ${dog.goodWithCats}`);
+            if (dog.goodWithKids && dog.goodWithKids !== 'unknown') compat.push(`Kids: ${dog.goodWithKids}`);
+            
+            if (compat.length > 0) {
+                html += `<p style="margin-top: 8px; font-size: 14px;"><strong>Compatibility:</strong> ${compat.join(' • ')}</p>`;
+            }
+
+            card.innerHTML = html;
+            return card;
+        }
+
+        // Render all dogs
+        function renderAllDogs() {
+            const container = document.getElementById('all-dogs-list');
+            container.innerHTML = '';
+
+            if (allDogs.length === 0) {
+                container.innerHTML = '<div class="card" style="text-align: center;"><p style="color: #6b7280;">Loading dogs...</p></div>';
+                return;
+            }
+
+            allDogs.forEach(dog => {
+                const dogCard = createDogCard(dog, false);
+                container.appendChild(dogCard);
+            });
+        }
+
+        // Load dogs for admin panel
+        async function loadDogsForAdmin() {
+            await loadDogs();
+            const container = document.getElementById('admin-dogs-list');
+            container.innerHTML = '';
+
+            if (allDogs.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6b7280;">No dogs in database</p>';
+                return;
+            }
+
+            allDogs.forEach(dog => {
+                const dogDiv = document.createElement('div');
+                dogDiv.style.cssText = 'border: 1px solid #e5e7eb; padding: 16px; border-radius: 8px; margin-bottom: 12px;';
+                dogDiv.innerHTML = `
+                    <h4 style="font-size: 18px; margin-bottom: 8px;">${dog.name}</h4>
+                    <p style="color: #6b7280; font-size: 14px;">${dog.breed} • ${dog.age} • ${dog.sex}</p>
+                    <button class="delete-button" data-dog-id="${dog.id}" data-dog-name="${dog.name}">Delete</button>
+                `;
+                container.appendChild(dogDiv);
+            });
+
+            // Add delete button listeners
+            document.querySelectorAll('.delete-button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const dogId = this.getAttribute('data-dog-id');
+                    const dogName = this.getAttribute('data-dog-name');
+                    deleteDog(dogId, dogName);
+                });
+            });
+        }
+
+        // Delete dog
+        async function deleteDog(dogId, dogName) {
+            if (confirm(`Are you sure you want to delete ${dogName}? This cannot be undone.`)) {
+                try {
+                    await deleteDoc(doc(db, "dogs", dogId));
+                    alert('✅ Dog deleted successfully!');
+                    loadDogsForAdmin();
+                    await loadDogs();
+                } catch (error) {
+                    alert('❌ Error deleting dog: ' + error.message);
+                    console.error(error);
+                }
+            }
+        }
+
+        // Page navigation with event listeners
+        document.querySelectorAll('.nav-button').forEach(button => {
+            button.addEventListener('click', async function() {
+                const pageName = this.getAttribute('data-page');
+                
+                const pages = document.querySelectorAll('.page');
+                pages.forEach(page => page.classList.remove('active'));
+
+                const buttons = document.querySelectorAll('.nav-button');
+                buttons.forEach(btn => btn.classList.remove('active'));
+
+                document.getElementById(pageName).classList.add('active');
+                this.classList.add('active');
+
+                if (pageName === 'all-dogs') {
+                    await loadDogs();
+                    renderAllDogs();
+                } else if (pageName === 'admin') {
+                    document.getElementById('admin-login').style.display = 'block';
+                    document.getElementById('admin-panel').style.display = 'none';
+                    document.getElementById('admin-password').value = '';
+                    document.getElementById('login-error').style.display = 'none';
+                }
+            });
+        });
+
+        // Admin login
+        document.getElementById('admin-login-btn').addEventListener('click', function() {
+            const password = document.getElementById('admin-password').value;
+            if (password === ADMIN_PASSWORD) {
+                document.getElementById('admin-login').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                loadDogsForAdmin();
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+            }
+        });
+
+        // Add new dog
+        document.getElementById('add-dog-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const temperamentText = document.getElementById('new-temperament').value;
+            const temperamentArray = temperamentText ? temperamentText.split(',').map(t => t.trim()) : [];
+
+            const newDog = {
+                name: document.getElementById('new-name').value,
+                sex: document.getElementById('new-sex').value,
+                breed: document.getElementById('new-breed').value,
+                age: document.getElementById('new-age').value,
+                size: document.getElementById('new-size').value,
+                energy: document.getElementById('new-energy').value,
+                temperament: temperamentArray,
+                grooming: document.getElementById('new-grooming').value,
+                experience: "any",
+                hypoallergenic: document.getElementById('new-hypoallergenic').checked,
+                pottyTrained: document.getElementById('new-potty').checked,
+                leashTrained: document.getElementById('new-leash').checked,
+                crateTrained: document.getElementById('new-crate').checked,
+                goodWithDogs: document.getElementById('new-good-dogs').value,
+                goodWithCats: document.getElementById('new-good-cats').value,
+                goodWithKids: document.getElementById('new-good-kids').value
+            };
+
+            try {
+                await addDoc(collection(db, "dogs"), newDog);
+                alert('✅ Dog added successfully!');
+                document.getElementById('add-dog-form').reset();
+                loadDogsForAdmin();
+                await loadDogs();
+            } catch (error) {
+                alert('❌ Error adding dog: ' + error.message);
+                console.error(error);
+            }
+        });
+
+        // Handle quiz form submission
+        document.getElementById('quiz-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const prefs = {
+                livingSpace: document.getElementById('living-space').value,
+                hasYard: document.getElementById('has-yard').value,
+                experience: document.getElementById('experience').value,
+                activity: document.getElementById('activity').value,
+                hasChildren: document.getElementById('has-children').value,
+                hasPets: document.getElementById('has-pets').value,
+                petType: document.getElementById('pet-type').value,
+                groomingTime: document.getElementById('grooming-time').value,
+                hypoallergenic: document.getElementById('hypoallergenic').value,
+                trainingTime: document.getElementById('training-time').value
+            };
+
+            await loadDogs();
+
+            const results = allDogs.map(dog => {
+                const matchResult = calculateMatchScore(dog, prefs);
+                return {
+                    dog: dog,
+                    score: matchResult.score,
+                    warnings: matchResult.warnings
+                };
+            });
+
+            results.sort((a, b) => b.score - a.score);
+
+            const resultsContainer = document.getElementById('results-list');
+            resultsContainer.innerHTML = '';
+
+            if (results.every(r => r.score === 0)) {
+                resultsContainer.innerHTML = '<div class="card" style="text-align: center;"><p style="font-size: 18px; margin-bottom: 16px; font-weight: 600;">No hypoallergenic dogs are currently available.</p><p style="color: #6b7280;">Unfortunately, we do not currently have any hypoallergenic dogs in our system. Please check back later or adjust your preferences.</p></div>';
+            } else {
+                results.forEach((result) => {
+                    if (result.score > 0) {
+                        const card = createDogCard(result.dog, true, result.score, result.warnings);
+                        resultsContainer.appendChild(card);
+                    }
+                });
+            }
+
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById('results').classList.add('active');
+
+            const buttons = document.querySelectorAll('.nav-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+        });
+
+        // Back to quiz button
+        document.getElementById('back-to-quiz').addEventListener('click', function() {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById('quiz').classList.add('active');
+
+            const buttons = document.querySelectorAll('.nav-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            document.querySelector('[data-page="quiz"]').classList.add('active');
+        });
+
+        // Show/hide pet type
+        document.getElementById('has-pets').addEventListener('change', function() {
+            const petTypeGroup = document.getElementById('pet-type-group');
+            petTypeGroup.style.display = this.value === 'yes' ? 'block' : 'none';
+        });
+
+        // Initialize - load dogs on page load
+        loadDogs();
+    </script>
+</body>
+</html>
